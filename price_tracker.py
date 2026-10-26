@@ -29,15 +29,21 @@ def get_page() -> str:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             try:
-                context = browser.new_context(
-                    locale="ro-RO",
-                    timezone_id="Europe/Bucharest",
-                    viewport={"width": 1440, "height": 1000},
-                    user_agent=(
-                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                    ),
-                )
+                context_options = {
+                    "locale": "ro-RO",
+                    "timezone_id": "Europe/Bucharest",
+                    "viewport": {"width": 1440, "height": 1000},
+                }
+                storage_state_json = os.getenv("EMAG_STORAGE_STATE", "").strip()
+                if storage_state_json:
+                    try:
+                        context_options["storage_state"] = json.loads(storage_state_json)
+                    except json.JSONDecodeError as exc:
+                        raise RuntimeError(
+                            "EMAG_STORAGE_STATE is not valid JSON. Paste the complete "
+                            "contents of the Playwright storage-state file into the GitHub secret."
+                        ) from exc
+                context = browser.new_context(**context_options)
                 page = context.new_page()
                 response = page.goto(
                     PRODUCT_URL,
