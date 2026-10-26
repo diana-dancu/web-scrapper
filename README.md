@@ -1,0 +1,38 @@
+# eMAG Price Tracker
+
+Checks the eMAG listing for the Bosch WTH8520BBY tumble dryer daily and emails the detected price.
+
+Product: [Bosch WTH8520BBY on eMAG](https://www.emag.ro/uscator-de-rufe-bosch-pompa-de-caldura-8-kg-15-programe-autodry-technology-antivibration-filtru-easyclean-clasa-d-alb-negru-wth8520bby/pd/DK77M73BM/)
+
+## Schedule
+
+GitHub Actions runs daily at **09:00 UTC** (`0 9 * * *`). This is 11:00 in Romania during winter time (EET, UTC+2) and 12:00 during summer time (EEST, UTC+3). Run manually from **GitHub → Actions → eMAG price check → Run workflow**.
+
+## Configure email
+
+Open **Settings → Secrets and variables → Actions → New repository secret** and add:
+
+| Secret | Value |
+|---|---|
+| `SMTP_HOST` | SMTP server hostname (for Gmail: `smtp.gmail.com`) |
+| `SMTP_PORT` | `587` for STARTTLS |
+| `SMTP_USERNAME` | SMTP login / full email address |
+| `SMTP_PASSWORD` | SMTP password or provider app password |
+| `EMAIL_FROM` | Sender email address |
+| `EMAIL_TO` | Destination email address for daily reports |
+
+For Gmail, use an app password if available; do not store your regular account password in the repository. For other providers, use their SMTP server and credentials.
+
+## How it works
+
+1. Fetches the product page.
+2. Looks for a price in JSON-LD structured data and common metadata.
+3. Emails the detected price and product link.
+4. If fetching or parsing fails, attempts to email an error alert and marks the workflow run as failed.
+
+## Limitations
+
+- eMAG may block automated requests or change its page structure. If no price can be identified confidently, the script reports an error instead of guessing.
+- The reported price is the listing price at check time, not a guaranteed checkout price.
+- This workflow makes one request per day. Review eMAG's terms and site rules before running automated requests.
+- GitHub scheduled workflows can start late; check the Actions tab if emails stop arriving.
