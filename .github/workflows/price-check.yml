@@ -34,4 +34,5 @@ jobs:
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAG_STORAGE_STATE: ${{ secrets.EMAG_STORAGE_STATE }}
         run: python price_tracker.py
