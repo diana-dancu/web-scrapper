@@ -14,6 +14,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
+
 PRODUCT_URL = "https://www.emag.ro/uscator-de-rufe-bosch-pompa-de-caldura-8-kg-15-programe-autodry-technology-antivibration-filtru-easyclean-clasa-d-alb-negru-wth8520bby/pd/DK77M73BM/"
 PRODUCT_NAME = "Bosch WTH8520BBY heat-pump tumble dryer"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -21,15 +24,35 @@ GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 
 
 def get_page() -> str:
-    request = Request(PRODUCT_URL, headers={
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-        "Accept-Language": "ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept": "text/html,application/xhtml+xml",
-    })
-    with urlopen(request, timeout=25) as response:
-        charset = response.headers.get_content_charset() or "utf-8"
-        return response.read().decode(charset, errors="replace")
-
+    """Load the listing in a real Chromium browser instead of a plain HTTP request."""
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            try:
+                context = browser.new_context(
+                    locale="ro-RO",
+                    timezone_id="Europe/Bucharest",
+                    viewport={"width": 1440, "height": 1000},
+                    user_agent=(
+                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    ),
+                )
+                page = context.new_page()
+                response = page.goto(
+                    PRODUCT_URL,
+                    wait_until="domcontentloaded",
+                    timeout=45000,
+                )
+                if response is not None and response.status >= 400:
+                    raise RuntimeError(f"eMAG returned HTTP {response.status} to the browser.")
+                # Allow client-rendered product data a moment to appear.
+                page.wait_for_timeout(2500)
+                return page.content()
+            finally:
+                browser.close()
+    except PlaywrightTimeoutError as exc:
+        raise RuntimeError(f"Timed out while loading the eMAG product page: {exc}") from exc
 
 def parse_price(page: str) -> tuple[str, str]:
     scripts = re.finditer(
