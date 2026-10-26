@@ -28,14 +28,15 @@ The Google OAuth app is currently in **Testing** mode. For an external app using
 
 ## How it works
 
-1. Fetches the product page.
-2. Looks for a price in JSON-LD structured data and common metadata.
-3. Uses the Google OAuth refresh token to obtain an access token and sends the report through the Gmail API.
-4. If fetching or parsing fails, attempts to email an error alert and marks the workflow run as failed.
+1. Installs the Python Playwright package and Chromium in the temporary GitHub-hosted runner.
+2. Opens the product page in headless Chromium and waits briefly for client-rendered content.
+3. Looks for a price in JSON-LD structured data and common metadata.
+4. Uses the Google OAuth refresh token to obtain an access token and sends the report through the Gmail API.
+5. If fetching or parsing fails, attempts to email an error alert and marks the workflow run as failed. The runner is discarded when the job ends, so the browser installation does not persist.
 
 ## Limitations
 
-- eMAG may block automated requests or change its page structure. If no price can be identified confidently, the script reports an error instead of guessing.
+- Playwright may help with pages that require JavaScript, but it does not guarantee access if eMAG blocks traffic from GitHub-hosted runners. The script does not attempt to bypass access controls. If no price can be identified confidently, it reports an error instead of guessing.
 - The reported price is the listing price at check time, not a guaranteed checkout price.
 - This workflow makes one request per day. Review eMAG's terms and site rules before running automated requests.
 - GitHub scheduled workflows can start late; check the Actions tab if emails stop arriving.
