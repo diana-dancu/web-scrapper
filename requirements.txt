@@ -1,1 +1,1 @@
-# Uses only the Python standard library; no third-party packages required.
+playwright>=1.50,<2
