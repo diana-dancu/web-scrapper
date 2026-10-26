@@ -51,7 +51,22 @@ def get_page() -> str:
                     timeout=45000,
                 )
                 if response is not None and response.status >= 400:
-                    raise RuntimeError(f"eMAG returned HTTP {response.status} to the browser.")
+                    # Report non-sensitive diagnostics only; never log cookies or storage state.
+                    final_url = page.url
+                    try:
+                        title = page.title()[:160]
+                    except Exception:
+                        title = "(unavailable)"
+                    server = response.headers.get("server", "(not provided)")
+                    request_id = (
+                        response.headers.get("x-request-id")
+                        or response.headers.get("x-correlation-id")
+                        or "(not provided)"
+                    )
+                    raise RuntimeError(
+                        f"eMAG returned HTTP {response.status}; final_url={final_url}; "
+                        f"title={title!r}; server={server!r}; request_id={request_id!r}."
+                    )
                 # Allow client-rendered product data a moment to appear.
                 page.wait_for_timeout(2500)
                 return page.content()
